@@ -22,7 +22,7 @@ class Ad(models.Model):
 
 
 class ExchangeProposal(models.Model):
-    """Медель предложения обмена между двумя объявлениями"""
+    """Медель предложения обмена"""
     STATUS_CHOICES = [
         ('pending', 'Ожидает'),
         ('accepted', 'Принята'),

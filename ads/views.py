@@ -1,17 +1,17 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Ad, ExchangeProposal
-from .forms import AdForm
+from .forms import AdForm, ProposalForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
 def home(request):
-    """Главная со списком всех объявлений."""
+    """Главная страница."""
     ads = Ad.objects.all().order_by('-created_at')
     return render(request, 'home.html', {'ads': ads})
 
 @login_required
 def create_ad(request):
-    """ Создание объявления."""
+    """Создание объявления."""
     if request.method == 'POST':
         form = AdForm(request.POST)
         if form.is_valid():
@@ -25,7 +25,7 @@ def create_ad(request):
 
 @login_required
 def edit_ad(request, ad_id):
-    """ Редактирование объявления."""
+    """Редактирование объявления."""
     ad = get_object_or_404(Ad, id=ad_id)
     if ad.user != request.user:
         return HttpResponseForbidden("Вы не можете редактировать это объявление.")
@@ -41,9 +41,61 @@ def edit_ad(request, ad_id):
 
 @login_required
 def delete_ad(request, ad_id):
-    """ Удаление объявления."""
+    """Удаление объявления."""
     ad = get_object_or_404(Ad, id=ad_id)
     if ad.user != request.user:
         return HttpResponseForbidden("Вы не можете удалить это объявление.")
     ad.delete()
     return redirect('home')
+
+def search_ads(request):
+    """Поиск и фильтрация объявлений."""
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    condition = request.GET.get('condition', '')
+
+    ads = Ad.objects.all()
+
+    if query:
+        ads = ads.filter(title__icontains=query) | ads.filter(description__icontains=query)
+    if category:
+        ads = ads.filter(category__icontains=category)
+    if condition:
+        ads = ads.filter(condition=condition)
+
+    return render(request, 'ads/search_results.html', {'ads': ads})
+
+@login_required
+def create_proposal(request):
+    """Создание предложения обмена."""
+    if request.method == 'POST':
+        form = ProposalForm(request.POST)
+        if form.is_valid():
+            proposal = form.save(commit=False)
+            proposal.status = 'pending'
+            proposal.save()
+            return redirect('home')
+    else:
+        form = ProposalForm()
+    return render(request, 'ads/create_proposal.html', {'form': form})
+
+@login_required
+def update_proposal(request, proposal_id):
+    """Обновление статуса предложения (только для получателя)."""
+    proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
+    if proposal.ad_receiver.user != request.user:
+        return HttpResponseForbidden("Вы не можете изменить статус этого предложения.")
+
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in dict(ExchangeProposal.STATUS_CHOICES):
+            proposal.status = new_status
+            proposal.save()
+    return redirect('view_proposals')
+
+@login_required
+def view_proposals(request):
+    """Просмотр всех предложений пользователя."""
+    sent = ExchangeProposal.objects.filter(ad_sender__user=request.user)
+    received = ExchangeProposal.objects.filter(ad_receiver__user=request.user)
+    return render(request, 'ads/view_proposals.html', {'sent': sent, 'received': received})
