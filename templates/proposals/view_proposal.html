@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Мои предложения</h2>
+<h3>Отправленные</h3>
+<ul>
+  {% for p in sent %}
+    <li>{{ p.ad_sender.title }} → {{ p.ad_receiver.title }} | {{ p.status }}</li>
+  {% endfor %}
+</ul>
+<h3>Полученные</h3>
+<ul>
+  {% for p in received %}
+    <li>{{ p.ad_sender.title }} → {{ p.ad_receiver.title }} | {{ p.status }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

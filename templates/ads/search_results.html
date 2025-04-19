@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Результаты поиска</h2>
+<ul>
+  {% for ad in ads %}
+    <li><strong>{{ ad.title }}</strong> - {{ ad.description }} - {{ ad.condition }}</li>
+  {% empty %}
+    <li>Ничего не найдено.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
