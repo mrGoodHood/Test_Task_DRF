@@ -3,12 +3,19 @@ from .models import Ad, ExchangeProposal
 from .forms import AdForm, ProposalForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from django.core.paginator import Paginator
 
 def home(request):
     """Главная страница."""
-    ads = Ad.objects.all().order_by('-created_at')
+    ads_list = Ad.objects.all().order_by('-created_at')
+    paginator = Paginator(ads_list, 10)  # 5 объявлений на страницу
+
+    page_number = request.GET.get('page')
+    ads = paginator.get_page(page_number)
+
     return render(request, 'home.html', {'ads': ads})
 
+# Объявления
 @login_required
 def create_ad(request):
     """Создание объявления."""
@@ -54,17 +61,28 @@ def search_ads(request):
     category = request.GET.get('category', '')
     condition = request.GET.get('condition', '')
 
-    ads = Ad.objects.all()
+    ads_list = Ad.objects.all().order_by('-created_at')
 
     if query:
-        ads = ads.filter(title__icontains=query) | ads.filter(description__icontains=query)
+        ads_list = ads_list.filter(title__icontains=query) | ads_list.filter(description__icontains=query)
     if category:
-        ads = ads.filter(category__icontains=category)
+        ads_list = ads_list.filter(category__icontains=category)
     if condition:
-        ads = ads.filter(condition=condition)
+        ads_list = ads_list.filter(condition=condition)
+
+    paginator = Paginator(ads_list, 10)
+    page_number = request.GET.get('page')
+    ads = paginator.get_page(page_number)
 
     return render(request, 'ads/search_results.html', {'ads': ads})
 
+
+def ad_detail(request, ad_id):
+    ad = get_object_or_404(Ad, id=ad_id)
+    return render(request, 'ads/ad_detail.html', {'ad': ad})
+
+
+# Предложения обмена
 @login_required
 def create_proposal(request):
     """Создание предложения обмена."""
