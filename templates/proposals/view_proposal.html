@@ -1,16 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Мои предложения</h2>
-<h3>Отправленные</h3>
-<ul>
-  {% for p in sent %}
-    <li>{{ p.ad_sender.title }} → {{ p.ad_receiver.title }} | {{ p.status }}</li>
-  {% endfor %}
-</ul>
-<h3>Полученные</h3>
-<ul>
-  {% for p in received %}
-    <li>{{ p.ad_sender.title }} → {{ p.ad_receiver.title }} | {{ p.status }}</li>
-  {% endfor %}
-</ul>
+<h1>Предложения обмена</h1>
+
+<div style="margin-bottom: 15px;">
+  <a href="{% url 'create_proposal' %}" class="btn">Создать предложение</a>
+  <a href="{% url 'view_proposals' %}?mine=true" class="btn">Мои предложения</a>
+  <a href="{% url 'view_proposals' %}" class="btn">Все предложения</a>
+</div>
+
+<form method="get" class="filter-form">
+  <label for="status">Фильтр по статусу:</label>
+  <select name="status" id="status">
+    <option value="" {% if not status_filter %}selected{% endif %}>Все</option>
+    <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Ожидает</option>
+    <option value="accepted" {% if status_filter == "accepted" %}selected{% endif %}>Принята</option>
+    <option value="rejected" {% if status_filter == "rejected" %}selected{% endif %}>Отклонена</option>
+  </select>
+  {% if only_mine %}
+    <input type="hidden" name="mine" value="true">
+  {% endif %}
+  <button type="submit">Применить</button>
+</form>
+
+<hr>
+
+{% if proposals %}
+  <ul>
+    {% for p in proposals %}
+      <li style="margin-bottom: 10px;">
+        {{ p.ad_sender.title }} → {{ p.ad_receiver.title }}<br>
+        Статус: <strong>{{ p.get_status_display }}</strong><br>
+        {{ p.comment }}<br>
+        {{ p.created_at|date:"d.m.Y H:i" }}
+        {% if p.ad_receiver.user == request.user and p.status == 'pending' %}
+          <form method="post" action="{% url 'update_proposal' p.id %}">
+            {% csrf_token %}
+            <select name="status">
+              <option value="accepted">Принять</option>
+              <option value="rejected">Отклонить</option>
+            </select>
+            <button type="submit">Обновить</button>
+          </form>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Предложений обмена нет.</p>
+{% endif %}
 {% endblock %}

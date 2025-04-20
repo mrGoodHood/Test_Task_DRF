@@ -6,9 +6,11 @@
 </head>
 <body>
     <nav>
-        <a href="/">Главная</a>
-        <a href="/ads/create/">Создать объявление</a>
+    <a href="/">Главная</a>
+    <a href="/ads/create/">Создать объявление</a>
+    <a href="{% url 'view_proposals' %}">Предложения обмена</a>
     </nav>
+
     <hr>
     {% block content %}{% endblock %}
 </body>

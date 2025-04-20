@@ -95,7 +95,7 @@ def create_proposal(request):
             return redirect('home')
     else:
         form = ProposalForm()
-    return render(request, 'ads/create_proposal.html', {'form': form})
+    return render(request, 'proposals/create_proposal.html', {'form': form})
 
 @login_required
 def update_proposal(request, proposal_id):
@@ -113,7 +113,22 @@ def update_proposal(request, proposal_id):
 
 @login_required
 def view_proposals(request):
-    """Просмотр всех предложений пользователя."""
-    sent = ExchangeProposal.objects.filter(ad_sender__user=request.user)
-    received = ExchangeProposal.objects.filter(ad_receiver__user=request.user)
-    return render(request, 'ads/view_proposals.html', {'sent': sent, 'received': received})
+    """Просмотр предложений обмена."""
+    all_proposals = ExchangeProposal.objects.all().order_by('-created_at')
+
+    if request.GET.get('mine') == 'true':
+        all_proposals = all_proposals.filter(
+            ad_sender__user=request.user
+        ) | all_proposals.filter(
+            ad_receiver__user=request.user
+        )
+
+    status_filter = request.GET.get('status')
+    if status_filter:
+        all_proposals = all_proposals.filter(status=status_filter)
+
+    return render(request, 'proposals/view_proposal.html', {
+        'proposals': all_proposals,
+        'status_filter': status_filter,
+        'only_mine': request.GET.get('mine') == 'true'
+    })
