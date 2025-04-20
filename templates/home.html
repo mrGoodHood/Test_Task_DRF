@@ -2,13 +2,6 @@
 {% block content %}
 <h1>Все объявления</h1>
 
-<!-- Кнопка перехода к предложениям обмена -->
-<div style="margin-bottom: 20px;">
-  <a href="{% url 'view_proposals' %}" class="btn" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-    Мои предложения обмена
-  </a>
-</div>
-
 <ul>
   {% for ad in ads %}
     <li style="margin-bottom: 20px;">
