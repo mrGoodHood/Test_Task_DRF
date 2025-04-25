@@ -4,6 +4,8 @@ from .forms import AdForm, ProposalForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
+from rest_framework import viewsets, permissions
+from .serializers import AdSerializer, ExchangeProposalSerializer
 
 def home(request):
     """Главная страница."""
@@ -132,3 +134,27 @@ def view_proposals(request):
         'status_filter': status_filter,
         'only_mine': request.GET.get('mine') == 'true'
     })
+
+
+# DRF вьюсеты
+from rest_framework import viewsets, permissions
+from .models import Ad, ExchangeProposal
+from .serializers import AdSerializer, ExchangeProposalSerializer
+
+
+class AdViewSet(viewsets.ModelViewSet):
+    queryset = Ad.objects.all().order_by('-created_at')
+    serializer_class = AdSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class ExchangeProposalViewSet(viewsets.ModelViewSet):
+    queryset = ExchangeProposal.objects.all().order_by('-created_at')
+    serializer_class = ExchangeProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(ad_sender=self.request.user.ad_set.first())  # TODO: уточнение логики
