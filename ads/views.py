@@ -1,26 +1,25 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Ad, ExchangeProposal
-from .forms import AdForm, ProposalForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
+from .models import Ad, ExchangeProposal
+from .forms import AdForm, ProposalForm
+
+# DRF
 from rest_framework import viewsets, permissions
 from .serializers import AdSerializer, ExchangeProposalSerializer
 
-def home(request):
-    """Главная страница."""
-    ads_list = Ad.objects.all().order_by('-created_at')
-    paginator = Paginator(ads_list, 10)  # 5 объявлений на страницу
 
+def home(request):
+    ads_list = Ad.objects.all().order_by('-created_at')
+    paginator = Paginator(ads_list, 10)
     page_number = request.GET.get('page')
     ads = paginator.get_page(page_number)
-
     return render(request, 'home.html', {'ads': ads})
 
-# Объявления
+
 @login_required
 def create_ad(request):
-    """Создание объявления."""
     if request.method == 'POST':
         form = AdForm(request.POST)
         if form.is_valid():
@@ -32,9 +31,9 @@ def create_ad(request):
         form = AdForm()
     return render(request, 'ads/create_ad.html', {'form': form})
 
+
 @login_required
 def edit_ad(request, ad_id):
-    """Редактирование объявления."""
     ad = get_object_or_404(Ad, id=ad_id)
     if ad.user != request.user:
         return HttpResponseForbidden("Вы не можете редактировать это объявление.")
@@ -48,17 +47,17 @@ def edit_ad(request, ad_id):
         form = AdForm(instance=ad)
     return render(request, 'ads/edit_ad.html', {'form': form})
 
+
 @login_required
 def delete_ad(request, ad_id):
-    """Удаление объявления."""
     ad = get_object_or_404(Ad, id=ad_id)
     if ad.user != request.user:
         return HttpResponseForbidden("Вы не можете удалить это объявление.")
     ad.delete()
     return redirect('home')
 
+
 def search_ads(request):
-    """Поиск и фильтрация объявлений."""
     query = request.GET.get('q', '')
     category = request.GET.get('category', '')
     condition = request.GET.get('condition', '')
@@ -84,10 +83,8 @@ def ad_detail(request, ad_id):
     return render(request, 'ads/ad_detail.html', {'ad': ad})
 
 
-# Предложения обмена
 @login_required
 def create_proposal(request):
-    """Создание предложения обмена."""
     if request.method == 'POST':
         form = ProposalForm(request.POST)
         if form.is_valid():
@@ -99,9 +96,9 @@ def create_proposal(request):
         form = ProposalForm()
     return render(request, 'proposals/create_proposal.html', {'form': form})
 
+
 @login_required
 def update_proposal(request, proposal_id):
-    """Обновление статуса предложения (только для получателя)."""
     proposal = get_object_or_404(ExchangeProposal, id=proposal_id)
     if proposal.ad_receiver.user != request.user:
         return HttpResponseForbidden("Вы не можете изменить статус этого предложения.")
@@ -113,10 +110,10 @@ def update_proposal(request, proposal_id):
             proposal.save()
     return redirect('view_proposals')
 
+
 @login_required
 def view_proposals(request):
-    """Просмотр предложений обмена."""
-    all_proposals = ExchangeProposal.objects.all().order_by('-created_at')
+    all_proposals = ExchangeProposal.objects.select_related('ad_sender__user', 'ad_receiver__user').order_by('-created_at')
 
     if request.GET.get('mine') == 'true':
         all_proposals = all_proposals.filter(
@@ -136,14 +133,9 @@ def view_proposals(request):
     })
 
 
-# DRF вьюсеты
-from rest_framework import viewsets, permissions
-from .models import Ad, ExchangeProposal
-from .serializers import AdSerializer, ExchangeProposalSerializer
-
-
+# DRF ViewSets
 class AdViewSet(viewsets.ModelViewSet):
-    queryset = Ad.objects.all().order_by('-created_at')
+    queryset = Ad.objects.select_related('user').order_by('-created_at')
     serializer_class = AdSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -152,7 +144,7 @@ class AdViewSet(viewsets.ModelViewSet):
 
 
 class ExchangeProposalViewSet(viewsets.ModelViewSet):
-    queryset = ExchangeProposal.objects.all().order_by('-created_at')
+    queryset = ExchangeProposal.objects.select_related('ad_sender', 'ad_receiver').order_by('-created_at')
     serializer_class = ExchangeProposalSerializer
     permission_classes = [permissions.IsAuthenticated]
 
